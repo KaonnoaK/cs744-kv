@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: kvdb
+    restart: always
+    environment:
+      POSTGRES_USER: kvuser
+      POSTGRES_PASSWORD: kvpass
+      POSTGRES_DB: kvdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  kvserver:
+    build: ./server
+    container_name: kvserver
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://kvuser:kvpass@db:5432/kvdb?sslmode=disable
+      KV_CACHE_CAP: "20000"
+      KV_PORT: "8080"
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
+
