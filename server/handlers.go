@@ -9,24 +9,27 @@ import (
 )
 
 func handlePut(c *LRUCache, db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+    return func(w http.ResponseWriter, r *http.Request) {
+        start := time.Now()
 
-		key := mux.Vars(r)["key"]
-		var body map[string]string
-		json.NewDecoder(r.Body).Decode(&body)
+        key := mux.Vars(r)["key"]
+        var body map[string]string
+        json.NewDecoder(r.Body).Decode(&body)
 
-		_, err := db.Exec("INSERT INTO kv VALUES ($1,$2) ON CONFLICT(key) DO UPDATE SET value=$2", key, body["value"])
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
+        _, err := db.Exec(
+            "INSERT INTO kv (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+            key, body["value"],
+        )
+        if err != nil {
+            http.Error(w, err.Error(), 500)
+            return
+        }
 
-		c.Put(key, body["value"])
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+        c.Put(key, body["value"])
+        json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 
-		record(time.Since(start))
-	}
+        record(time.Since(start))
+    }
 }
 
 func handleGet(c *LRUCache, db *sql.DB) http.HandlerFunc {

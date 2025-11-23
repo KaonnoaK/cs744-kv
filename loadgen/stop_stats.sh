@@ -1,9 +1,17 @@
 #!/bin/bash
 
 OUTDIR=$1
-PIDS=$(cat "$OUTDIR/pids.txt")
+PIDFILE="$OUTDIR/pids.txt"
 
-echo "[stop] stopping collectors: $PIDS"
+if [ ! -f "$PIDFILE" ]; then
+    echo "[stop] ERROR: PID file missing: $PIDFILE"
+    exit 1
+fi
 
-kill $PIDS
+echo "[stop] stopping collectors:"
+for pid in $(cat "$PIDFILE"); do
+    kill $pid 2>/dev/null
+done
+
+rm "$PIDFILE"
 

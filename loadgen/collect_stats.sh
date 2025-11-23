@@ -3,24 +3,18 @@
 OUTDIR=$1
 mkdir -p "$OUTDIR"
 
-echo "[collector] writing stats to $OUTDIR"
+# Save PID list inside OUTDIR
+PIDFILE="$OUTDIR/pids.txt"
 
-# CPU stats
-mpstat 1 > "$OUTDIR/cpu.log" &
-CPU_PID=$!
+# Start sar collectors
+sar -u 1 > "$OUTDIR/cpu.log" &
+echo $! >> "$PIDFILE"
 
-# Disk I/O
-iostat -x 1 > "$OUTDIR/disk.log" &
-DISK_PID=$!
+sar -d 1 > "$OUTDIR/disk.log" &
+echo $! >> "$PIDFILE"
 
-# Memory / swap / system
 vmstat 1 > "$OUTDIR/vmstat.log" &
-VM_PID=$!
+echo $! >> "$PIDFILE"
 
-# Network (optional)
-sar -n DEV 1 > "$OUTDIR/net.log" &
-NET_PID=$!
-
-# Save PIDs
-echo $CPU_PID $DISK_PID $VM_PID $NET_PID > "$OUTDIR/pids.txt"
+echo "[collector] writing stats to $OUTDIR"
 

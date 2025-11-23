@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"time"
 	_ "github.com/lib/pq"
 )
 
@@ -22,6 +23,10 @@ func main() {
 	if err := ensureSchema(db); err != nil {
 	log.Fatal("Failed creating schema:", err)
 	}
+
+	db.SetMaxOpenConns(50)
+	db.SetMaxIdleConns(50)
+	db.SetConnMaxLifetime(time.Minute)
 
 
 	router := mux.NewRouter()
