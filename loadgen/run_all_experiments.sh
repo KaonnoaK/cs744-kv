@@ -10,7 +10,7 @@ for W in "${WORKLOADS[@]}"; do
     echo "====================================="
     echo "[master] Running workload=$W threads=$T"
     echo "====================================="
-    ./run_with_stats.sh $T $W
+    ./run_with_stats.sh "$T" "$W"
     echo "[master] Sleeping 10 seconds before next run..."
     sleep 10
   done

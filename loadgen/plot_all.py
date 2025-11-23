@@ -1,94 +1,69 @@
 import os
-import csv
-import re
+import pandas as pd
 import matplotlib.pyplot as plt
-from collections import defaultdict
 
-# -------------------------------------
-#  Directory scanning
-# -------------------------------------
-
-def find_result_folders(base="."):
-    dirs = []
-    for d in os.listdir(base):
-        if os.path.isdir(d) and re.match(r"results_.+_\d+", d):
-            dirs.append(d)
-    return dirs
-
-# -------------------------------------
-#  Parse results.csv inside each folder
-# -------------------------------------
-
-def parse_results(path):
-    resultfile = os.path.join(path, "results.csv")
-    if not os.path.exists(resultfile):
+def load_summary(folder):
+    path = os.path.join(folder, "summary.csv")
+    if not os.path.exists(path):
+        return None
+    try:
+        df = pd.read_csv(path)
+        return df
+    except:
         return None
 
-    with open(resultfile) as f:
-        r = list(csv.DictReader(f))
+def plot_metric(metric, ylabel, outname, results):
+    plt.figure(figsize=(10, 6))
+    for workload, data in results.items():
+        threads = sorted(data.keys())
+        values = [data[t][metric] for t in threads]
+        plt.plot(threads, values, marker='o', label=workload)
 
-    if len(r) == 0:
-        return None
-
-    row = r[0]  # Only one row
-
-    return {
-        "workload": row["workload"],
-        "threads": int(float(row["threads"])),
-        "throughput": float(row["throughput_rps"]),
-        "p50": float(row["p50_ms"]),
-        "p90": float(row["p90_ms"]),
-        "p99": float(row["p99_ms"]),
-    }
-
-# -------------------------------------
-#  Plotting helpers
-# -------------------------------------
-
-def plot_metric(workload, data, metric, ylabel):
-    plt.figure(figsize=(8,5))
-    data = sorted(data, key=lambda x: x["threads"])
-
-    x = [d["threads"] for d in data]
-    y = [d[metric] for d in data]
-
-    plt.plot(x, y, marker="o")
-    plt.title(f"{workload.upper()} — {ylabel}")
     plt.xlabel("Threads")
     plt.ylabel(ylabel)
+    plt.title(outname.replace(".png", ""))
+    plt.legend()
     plt.grid(True)
-
-    os.makedirs("plots", exist_ok=True)
-    outfile = f"plots/{workload}_{metric}.png"
-    plt.savefig(outfile)
-    print(f"[+] Saved {outfile}")
+    plt.savefig(outname, dpi=300)
     plt.close()
 
-# -------------------------------------
-#  Main: Load → Aggregate → Plot
-# -------------------------------------
 
 def main():
-    folders = find_result_folders(".")
-    print("[*] Found result folders:", folders)
+    folders = [d for d in os.listdir(".") if d.startswith("results_")]
 
-    workloads = defaultdict(list)
-
+    workloads = {}
     for folder in folders:
-        res = parse_results(folder)
-        if res:
-            workloads[res["workload"]].append(res)
+        parts = folder.split("_")
+        workload = parts[1]
+        threads = int(parts[2])
 
-    print("[*] Workloads found:", workloads.keys())
+        df = load_summary(folder)
+        if df is None:
+            continue
 
-    # generate all plots per workload
-    for w, data in workloads.items():
-        plot_metric(w, data, "throughput", "Throughput (req/s)")
-        plot_metric(w, data, "p50", "p50 Latency (ms)")
-        plot_metric(w, data, "p90", "p90 Latency (ms)")
-        plot_metric(w, data, "p99", "p99 Latency (ms)")
+        if workload not in workloads:
+            workloads[workload] = {}
 
-    print("\n✔ All graphs generated in ./plots/\n")
+        workloads[workload][threads] = df.iloc[0]
+
+    # PLOT THROUGHPUT
+    plot_metric("throughput_rps", "Throughput (requests/sec)", "throughput.png", workloads)
+
+    # PLOT LATENCIES
+    plot_metric("avg_ms", "Average Latency (ms)", "avg_latency.png", workloads)
+    plot_metric("p50_ms", "p50 Latency (ms)", "p50_latency.png", workloads)
+    plot_metric("p90_ms", "p90 Latency (ms)", "p90_latency.png", workloads)
+    plot_metric("p99_ms", "p99 Latency (ms)", "p99_latency.png", workloads)
+
+    # Also generate per-workload latency graphs
+    for wl in workloads.keys():
+        wl_data = {wl: workloads[wl]}
+        plot_metric("avg_ms", "Average Latency (ms)", f"{wl}_avg_latency.png", wl_data)
+        plot_metric("p50_ms", "p50 Latency (ms)", f"{wl}_p50_latency.png", wl_data)
+        plot_metric("p90_ms", "p90 Latency (ms)", f"{wl}_p90_latency.png", wl_data)
+        plot_metric("p99_ms", "p99 Latency (ms)", f"{wl}_p99_latency.png", wl_data)
+
+    print("✔ All throughput + latency graphs generated!")
 
 if __name__ == "__main__":
     main()
