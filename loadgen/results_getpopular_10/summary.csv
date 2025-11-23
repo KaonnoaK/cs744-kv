@@ -1,0 +1,2 @@
+timestamp,workload,threads,duration_s,total_requests,successful,errors,throughput_rps,avg_ms,p50_ms,p90_ms,p99_ms
+2025-11-22T21:28:24+05:30,getpopular,10,300,17203851,15500289,1703562,57346.170000,0.174125,0.144967,0.321279,0.683305

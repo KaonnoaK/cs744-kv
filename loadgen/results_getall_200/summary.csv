@@ -1,0 +1,2 @@
+timestamp,workload,threads,duration_s,total_requests,successful,errors,throughput_rps,avg_ms,p50_ms,p90_ms,p99_ms
+2025-11-22T23:20:13+05:30,getall,200,300,4721530,47140,4674390,15738.433333,12.707623,9.829999,25.157454,47.106717
